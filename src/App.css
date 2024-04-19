@@ -1,0 +1,91 @@
+#root {
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 2rem;
+	text-align: center;
+}
+
+.logo {
+	height: 6em;
+	padding: 1.5em;
+	will-change: filter;
+	transition: filter 300ms;
+}
+.logo:hover {
+	filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+	filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	a:nth-of-type(2) .logo {
+		animation: logo-spin infinite 20s linear;
+	}
+}
+
+.card {
+	padding: 2em;
+}
+
+.read-the-docs {
+	color: #888;
+}
+
+body {
+	font-family: Arial, sans-serif;
+	margin: 0;
+	padding: 20px;
+	display: flex;
+}
+
+.container {
+	display: flex;
+	flex-wrap: wrap;
+	width: 100%;
+}
+
+.audio-controls,
+.graph-display {
+	flex: 1;
+	padding: 10px;
+	border: 1px solid #ddd;
+	margin: 5px;
+	text-align: center;
+}
+
+h2 {
+	margin-bottom: 10px;
+}
+
+#upload-audio,
+#analyze-audio {
+	padding: 10px;
+	margin-bottom: 10px;
+	width: 100%;
+}
+
+#audio-player {
+	width: 100%;
+}
+
+.graph-display {
+	display: flex;
+	flex-direction: column;
+}
+
+#area-chart,
+#pie-chart {
+	flex: 1;
+	height: 300px;
+	background-color: #eee;
+}
