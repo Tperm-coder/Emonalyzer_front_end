@@ -1,36 +1,46 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useReactMediaRecorder } from 'react-media-recorder';
-import Chart from 'chart.js/auto';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut, Pie } from 'react-chartjs-2';
+import { ToastContainer, toast } from 'react-toastify';
+import { quantum } from 'ldrs';
+
+import 'react-toastify/dist/ReactToastify.css';
+quantum.register();
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const AudioAnalyzer = ({ customAxios }) => {
 	const areaChartRef = useRef(null);
 	const pieChartRef = useRef(null);
 	const audioChunks = useRef([]);
 	const [currentAudio, setCurrentAudio] = useState(null);
+	const [loadingState, setLoadingState] = useState(false);
+	const [emotionPredictions, setEmotionPredictions] = useState([0, 0, 0, 0]);
 	const [mediaRecorder, setMediaRecorder] = useState(null);
-	// const { status, startRecording, stopRecording, mediaBlobUrl } = useReactMediaRecorder({
-	// 	audio: true,
-	// 	onStop: async (mediaBlobUrl, mediaBlob) => {
-	// 		console.log(mediaBlobUrl);
-	// 		console.log(mediaBlob);
-	// 		setCurrentAudio(mediaBlob);
-	// 	},
-	// 	blobPropertyBag: { type: 'audio/webm' },
-	// });
+	const { status, startRecording, stopRecording } = useReactMediaRecorder({
+		audio: true,
+		onStop: async (mediaBlobUrl, mediaBlob) => {
+			console.log(mediaBlobUrl);
+			console.log(mediaBlob);
+			setCurrentAudio(mediaBlob);
+		},
+		blobPropertyBag: { type: 'audio/webm' },
+	});
 
-	// let onrecordingStop = async () => {
-	// 	if (mediaBlobUrl) {
-	// 		const audioBlob = await fetch(mediaBlobUrl).then((r) => r.blob());
-	// 		setCurrentAudio(audioBlob);
-	// 	}
-	// };
-	// useEffect(async () => {
-	// 	console.log(status);
-	// 	// if (mediaBlobUrl) {
-	// 	// 	const audioBlob = await fetch(mediaBlobUrl).then((r) => r.blob());
-	// 	// 	setCurrentAudio(audioBlob);
-	// 	// }
-	// }, [status]);
+	const showToast = (msg) => {
+		toast(msg, {
+			position: 'top-right',
+			autoClose: 5000,
+			hideProgressBar: false,
+			closeOnClick: true,
+			pauseOnHover: true,
+			draggable: true,
+			progress: undefined,
+			theme: 'dark',
+			// transition: 'Slide',
+		});
+	};
 
 	useEffect(() => {
 		const audioPlayer = document.getElementById('audio-player');
@@ -45,57 +55,100 @@ const AudioAnalyzer = ({ customAxios }) => {
 		setCurrentAudio(event.target.files[0]);
 	};
 
-	const startRecording = async () => {
-		console.log('STARTTT');
-		audioChunks.current = [];
-		console.log('asking permission');
-		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-		console.log('permission granted');
-		const recorder = new MediaRecorder(stream);
+	// const startRecording = async () => {
+	// 	console.log('STARTTT');
+	// 	audioChunks.current = [];
+	// 	console.log('asking permission');
+	// 	const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+	// 	console.log('permission granted');
+	// 	const recorder = new MediaRecorder(stream);
 
-		recorder.ondataavailable = (e) => {
-			console.log('data ==>', e.data);
-			audioChunks.current.push(e.data);
-		};
+	// 	recorder.ondataavailable = (e) => {
+	// 		console.log('data ==>', e.data);
+	// 		audioChunks.current.push(e.data);
+	// 	};
 
-		recorder.onstop = () => {
-			const audioBlob = new Blob(audioChunks.current, { type: recorder.mimeType });
-			console.log('STOPPPP', audioBlob);
-			setCurrentAudio(audioBlob);
-		};
+	// 	recorder.onstop = () => {
+	// 		const audioBlob = new Blob(audioChunks.current, { type: recorder.mimeType });
+	// 		console.log('STOPPPP', audioBlob);
+	// 		setCurrentAudio(audioBlob);
+	// 	};
 
-		setMediaRecorder(recorder);
-		recorder.start(2000);
-	};
+	// 	setMediaRecorder(recorder);
+	// 	recorder.start(2000);
+	// };
 
-	const stopRecording = () => {
-		if (mediaRecorder) {
-			mediaRecorder.stop();
-		}
-	};
+	// const stopRecording = () => {
+	// 	if (mediaRecorder) {
+	// 		mediaRecorder.stop();
+	// 	}
+	// };
 
 	const handleSubmit = async () => {
 		if (!currentAudio) {
-			alert('Please select or record an audio file');
+			showToast('Please select or record an audio file');
 			return;
 		}
 		const formData = new FormData();
 		formData.append('file', currentAudio, `record ${Date.now().toString()}.wav`);
 
 		try {
+			setLoadingState(true);
 			const res = await customAxios.post({
 				endpoint: '/upload_audio',
 				headers: { 'Content-Type': 'multipart/form-data' },
 				body: formData,
 			});
+			setLoadingState(false);
 
-			console.log('File uploaded successfully:', res);
+			let predictions = [
+				parseFloat(res.predictions.ANG),
+				parseFloat(res.predictions.HAP),
+				parseFloat(res.predictions.NEU),
+				parseFloat(res.predictions.SAD),
+			];
+			setEmotionPredictions(predictions);
+			console.log('File uploaded successfully:', predictions);
 		} catch (error) {
 			console.error('Error uploading file:', error);
 		}
 	};
 
-	return (
+	const data = {
+		labels: ['Angry', 'Happy', 'Neutral', 'Sad'],
+		datasets: [
+			{
+				label: '# of Votes',
+				data: emotionPredictions,
+				backgroundColor: [
+					'rgba(255, 99, 132, 0.5)',
+					'rgba(54, 162, 235, 0.5)',
+					'rgba(255, 206, 86, 0.5)',
+					'rgba(205, 106, 6, 0.5)',
+				],
+				borderColor: [
+					'rgba(255, 99, 132, 1)',
+					'rgba(54, 162, 235, 1)',
+					'rgba(255, 206, 86, 1)',
+					'rgba(205, 106, 6, 1)',
+				],
+				borderWidth: 1,
+			},
+		],
+	};
+
+	const options = {
+		plugins: {
+			legend: {
+				position: 'top',
+			},
+		},
+	};
+	return loadingState ? (
+		<div>
+			<l-quantum size="200" speed="1.75" color="white"></l-quantum>
+		</div>
+	) : (
 		<div className="container">
 			<div className="audio-controls">
 				<h2>Audio Controls</h2>
@@ -111,9 +164,23 @@ const AudioAnalyzer = ({ customAxios }) => {
 			</div>
 			<div className="graph-display">
 				<h2>Graph Display</h2>
-				<canvas ref={areaChartRef} id="area-chart" width="75vw"></canvas>
-				<canvas ref={pieChartRef} id="pie-chart" width="75vw"></canvas>
+				<Pie data={data} options={options} />
+				{/* <canvas ref={areaChartRef} id="area-chart" width="75vw"></canvas>
+				<canvas ref={pieChartRef} id="pie-chart" width="75vw"></canvas> */}
 			</div>
+			<ToastContainer
+				position="top-right"
+				autoClose={5000}
+				hideProgressBar={false}
+				newestOnTop={false}
+				closeOnClick
+				rtl={false}
+				pauseOnFocusLoss
+				draggable
+				pauseOnHover
+				theme="dark"
+				transition:Slide
+			/>
 		</div>
 	);
 };
