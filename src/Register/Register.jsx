@@ -78,7 +78,13 @@ const Register = ({ customAxios }) => {
 							name="email"
 							control={control}
 							defaultValue=""
-							rules={{ required: 'Email is required', pattern: /^\S+@\S+\.\S+$/ || 'Invalid email' }}
+							rules={{
+								required: 'Email is required',
+								pattern: {
+									value: /^\S+@\S+\.\S+$/,
+									message: 'Invalid email',
+								},
+							}}
 							render={({ field }) => (
 								<TextField
 									margin="normal"
