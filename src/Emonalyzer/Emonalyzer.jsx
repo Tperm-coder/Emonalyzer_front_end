@@ -3,55 +3,106 @@ import { useReactMediaRecorder } from 'react-media-recorder';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut, Pie } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
+import { useWavesurfer } from '@wavesurfer/react';
+import { MdFiberManualRecord } from 'react-icons/md';
 import { quantum } from 'ldrs';
 
 import 'react-toastify/dist/ReactToastify.css';
-quantum.register();
 
+quantum.register();
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const AudioAnalyzer = ({ customAxios }) => {
 	const areaChartRef = useRef(null);
 	const pieChartRef = useRef(null);
+	const fileInputRef = useRef(null);
 	const audioChunks = useRef([]);
+	const [audioStartTime, setAudioStartTime] = useState(null);
+	const [pieVisibility, setPieVisibility] = useState(false);
+	const recordingToast = useRef(null);
 	const [currentAudio, setCurrentAudio] = useState(null);
+	const [currentAudioURL, setCurrentAudioURL] = useState(null);
 	const [loadingState, setLoadingState] = useState(false);
+	const [recordName, setRecordName] = useState('');
 	const [emotionPredictions, setEmotionPredictions] = useState([0, 0, 0, 0]);
 	const [mediaRecorder, setMediaRecorder] = useState(null);
+
+	useEffect(() => {
+		console.log('====> trigger', audioStartTime);
+		const timeOut = 10 * 1000;
+		const margin = 100;
+		const timer = setTimeout(() => {
+			if (Date.now() - audioStartTime <= timeOut + margin) {
+				console.log('Function executed after 3 seconds', Date.now());
+				stopRecording();
+			}
+		}, timeOut);
+
+		return () => {
+			clearTimeout(timer);
+		};
+	}, [audioStartTime]);
+
 	const { status, startRecording, stopRecording } = useReactMediaRecorder({
 		audio: true,
-		onStop: async (mediaBlobUrl, mediaBlob) => {
-			console.log(mediaBlobUrl);
-			console.log(mediaBlob);
-			setCurrentAudio(mediaBlob);
+		onStart: () => {
+			console.log({ status });
+			setAudioStartTime(Date.now());
+			recordingToast.current = showToast({
+				msg: 'Recording',
+				html: (
+					<div>
+						{'Recording   '}
+						<MdFiberManualRecord color="red" />
+					</div>
+				),
+				closeAfter: 10 * 1000,
+				position: 'top-left',
+				canClose: false,
+			});
 		},
-		blobPropertyBag: { type: 'audio/webm' },
+
+		onStop: async (mediaBlobUrl, mediaBlob) => {
+			console.log({ status });
+			toast.dismiss(recordingToast.current);
+			const response = await fetch(mediaBlobUrl);
+			if (!response.ok) {
+				throw new Error('Failed to fetch audio file');
+			}
+
+			const audioBlob = await response.blob();
+
+			console.log(mediaBlobUrl);
+			console.log(audioBlob);
+
+			setCurrentAudio(audioBlob);
+			setRecordName(`record ${Date.now().toString()}.wav`);
+		},
+		blobPropertyBag: { type: 'audio/wav' },
 	});
 
-	const showToast = (msg) => {
-		toast(msg, {
-			position: 'top-right',
-			autoClose: 5000,
+	const showToast = ({ html, msg, closeAfter = 5000, position = 'top-right', canClose = true }) => {
+		return toast(html ? html : msg, {
+			position,
+			autoClose: closeAfter,
 			hideProgressBar: false,
-			closeOnClick: true,
+			closeOnClick: canClose,
 			pauseOnHover: true,
 			draggable: true,
 			progress: undefined,
 			theme: 'dark',
-			// transition: 'Slide',
 		});
 	};
 
 	useEffect(() => {
-		const audioPlayer = document.getElementById('audio-player');
+		console.log('======> hope 2');
 		if (currentAudio) {
-			audioPlayer.src = URL.createObjectURL(currentAudio);
-			audioPlayer.load();
+			setCurrentAudioURL(URL.createObjectURL(currentAudio));
 		}
 	}, [currentAudio]);
 
 	const handleFileChange = (event) => {
-		console.log(event.target.files[0]);
+		setRecordName(event.target.files[0].name);
 		setCurrentAudio(event.target.files[0]);
 	};
 
@@ -84,33 +135,69 @@ const AudioAnalyzer = ({ customAxios }) => {
 	// 	}
 	// };
 
+	const onUploadFileClick = () => {
+		fileInputRef.current.click();
+	};
 	const handleSubmit = async () => {
 		if (!currentAudio) {
-			showToast('Please select or record an audio file');
+			showToast({ msg: 'Please select or record an audio file' });
 			return;
 		}
 		const formData = new FormData();
-		formData.append('file', currentAudio, `record ${Date.now().toString()}.wav`);
+		formData.append('file', currentAudio, recordName);
 
 		try {
+			console.log('===========================>>', currentAudio);
 			setLoadingState(true);
-			const res = await customAxios.post({
-				endpoint: '/upload_audio',
-				headers: { 'Content-Type': 'multipart/form-data' },
-				body: formData,
-			});
-			setLoadingState(false);
+			try {
+				const currentUrl = currentAudioURL;
+				setCurrentAudioURL('');
+				const res = await customAxios.post({
+					endpoint: '/upload_audio',
+					headers: { 'Content-Type': 'multipart/form-data' },
+					body: formData,
+				});
+				setLoadingState(false);
+				console.log('===========================>>', currentAudio);
 
-			let predictions = [
-				parseFloat(res.predictions.ANG),
-				parseFloat(res.predictions.HAP),
-				parseFloat(res.predictions.NEU),
-				parseFloat(res.predictions.SAD),
-			];
-			setEmotionPredictions(predictions);
-			console.log('File uploaded successfully:', predictions);
+				let predictions = [
+					parseFloat(res.predictions.ANG),
+					parseFloat(res.predictions.HAP),
+					parseFloat(res.predictions.NEU),
+					parseFloat(res.predictions.SAD),
+				];
+
+				let mx = -1;
+				let idx = 0;
+				predictions.forEach((val, i) => {
+					predictions[i] *= 100;
+					if (val > mx) {
+						mx = val;
+						idx = i;
+					}
+				});
+
+				showToast({
+					msg: `The dominant emotion is ${
+						idx == 0 ? 'Anger' : idx == 1 ? 'Happiness' : idx == 2 ? 'Neutrality' : 'Sadness'
+					}`,
+					closeAfter: 3 * 1000,
+					position: 'top-center',
+				});
+				setEmotionPredictions(predictions);
+				setCurrentAudioURL(currentUrl);
+				setPieVisibility(true);
+				console.log('File uploaded successfully:', predictions);
+			} catch (e) {
+				console.log(e);
+				setLoadingState(false);
+				setEmotionPredictions([1, 1, 1, 1]);
+				console.log('Error uploading file:', error);
+			}
 		} catch (error) {
-			console.error('Error uploading file:', error);
+			setLoadingState(false);
+			setEmotionPredictions([1, 1, 1, 1]);
+			console.log('Error uploading file:', error);
 		}
 	};
 
@@ -118,7 +205,7 @@ const AudioAnalyzer = ({ customAxios }) => {
 		labels: ['Angry', 'Happy', 'Neutral', 'Sad'],
 		datasets: [
 			{
-				label: '# of Votes',
+				label: '% ',
 				data: emotionPredictions,
 				backgroundColor: [
 					'rgba(255, 99, 132, 0.5)',
@@ -137,6 +224,19 @@ const AudioAnalyzer = ({ customAxios }) => {
 		],
 	};
 
+	const containerRef = useRef();
+
+	const { wavesurfer, isPlaying, isReady, currentTime } = useWavesurfer({
+		container: containerRef,
+		url: currentAudioURL,
+		waveColor: 'purple',
+		height: 500,
+		barRadius: 50,
+	});
+	const onPlayPause = () => {
+		wavesurfer && wavesurfer.playPause();
+	};
+
 	const options = {
 		plugins: {
 			legend: {
@@ -152,21 +252,24 @@ const AudioAnalyzer = ({ customAxios }) => {
 		<div className="container">
 			<div className="audio-controls">
 				<h2>Audio Controls</h2>
-				<input type="file" id="upload-audio" accept=".mp3,.wav" onChange={handleFileChange} />
-				<button id="record-audio" onClick={startRecording}>
-					Record Voice
+				<button onClick={status != 'recording' ? startRecording : stopRecording}>
+					{status != 'recording' ? 'Start Recording' : 'Stop Recording'}
 				</button>
-				<button onClick={stopRecording}>Stop Recording</button>
-				<audio id="audio-player" controls></audio>
-				<button id="analyze-audio" onClick={handleSubmit}>
-					Analyze Audio
-				</button>
+
+				{status != 'recording' ? <button onClick={onUploadFileClick}>Upload File</button> : <></>}
+				{status != 'recording' && currentAudioURL ? <div ref={containerRef} /> : <></>}
+				{currentAudioURL && status != 'recording' ? (
+					<>
+						<button onClick={onPlayPause}>{isPlaying ? 'Pause' : 'Play'}</button>
+						<button onClick={handleSubmit}>Analyze Audio</button>
+					</>
+				) : (
+					<> </>
+				)}
 			</div>
 			<div className="graph-display">
-				<h2>Graph Display</h2>
-				<Pie data={data} options={options} />
-				{/* <canvas ref={areaChartRef} id="area-chart" width="75vw"></canvas>
-				<canvas ref={pieChartRef} id="pie-chart" width="75vw"></canvas> */}
+				<h2>Emotions Predictions</h2>
+				{pieVisibility ? <Pie data={data} options={options} /> : <></>}
 			</div>
 			<ToastContainer
 				position="top-right"
@@ -180,6 +283,14 @@ const AudioAnalyzer = ({ customAxios }) => {
 				pauseOnHover
 				theme="dark"
 				transition:Slide
+				closeButton={false}
+			/>
+			<input
+				type="file"
+				ref={fileInputRef}
+				style={{ display: 'none' }}
+				accept=".mp3,.wav"
+				onChange={handleFileChange}
 			/>
 		</div>
 	);

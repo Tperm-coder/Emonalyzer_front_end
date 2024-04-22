@@ -52,6 +52,7 @@ body {
 	display: flex;
 	flex-wrap: wrap;
 	width: 100%;
+	/* background-color: rgba(51, 51, 51, 0.8); */
 }
 
 .audio-controls,
@@ -61,6 +62,7 @@ body {
 	border: 1px solid #ddd;
 	margin: 5px;
 	text-align: center;
+	width: 75vw;
 }
 
 h2 {
@@ -71,10 +73,10 @@ h2 {
 #analyze-audio {
 	padding: 10px;
 	margin-bottom: 10px;
-	width: 100%;
+	/* width: 100%; */
 }
 
-#audio-player {
+#full_width {
 	width: 100%;
 }
 
