@@ -43,6 +43,7 @@ const Login = () => {
 
 	return (
 		<Container maxWidth="xs">
+			<h1>Welcome to Emonalyzer</h1>
 			<Paper
 				elevation={3}
 				style={{ padding: '20px', marginTop: '20px', boxShadow: '0px 0px 10px rgba(0,0,0,0.2)' }}

@@ -46,6 +46,7 @@ const AudioAnalyzer = ({ customAxios }) => {
 	const { status, startRecording, stopRecording } = useReactMediaRecorder({
 		audio: true,
 		onStart: () => {
+			setPieVisibility(false);
 			console.log({ status });
 			setAudioStartTime(Date.now());
 			recordingToast.current = showToast({
@@ -244,6 +245,7 @@ const AudioAnalyzer = ({ customAxios }) => {
 		waveColor: 'purple',
 		height: 500,
 		barRadius: 50,
+		// barHeight: 20,
 	});
 	const onPlayPause = () => {
 		wavesurfer && wavesurfer.playPause();
@@ -281,7 +283,7 @@ const AudioAnalyzer = ({ customAxios }) => {
 			</div>
 			<div className="graph-display">
 				<h2>Emotions Predictions</h2>
-				{pieVisibility ? <Pie data={data} options={options} /> : <></>}
+				{pieVisibility && status != 'recording' ? <Pie data={data} options={options} /> : <></>}
 			</div>
 			<ToastContainer
 				position="top-right"
