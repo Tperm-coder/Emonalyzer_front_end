@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { TextField, Button, Typography, IconButton, InputAdornment, Container, Paper } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
+import { ToastContainer, toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const Register = ({ customAxios }) => {
 	const {
@@ -13,6 +15,21 @@ const Register = ({ customAxios }) => {
 	} = useForm({
 		mode: 'onChange',
 	});
+
+	const navigate = useNavigate();
+
+	const showToast = ({ html, msg, closeAfter = 5000, position = 'top-right', canClose = true }) => {
+		return toast(html ? html : msg, {
+			position,
+			autoClose: closeAfter,
+			hideProgressBar: false,
+			closeOnClick: canClose,
+			pauseOnHover: true,
+			draggable: true,
+			progress: undefined,
+			theme: 'dark',
+		});
+	};
 
 	const watchPassword = watch('password', '');
 	const [showPassword, setShowPassword] = useState(false);
@@ -27,10 +44,25 @@ const Register = ({ customAxios }) => {
 
 	const onSubmit = async (data) => {
 		console.log(data);
-		let res = await customAxios.post({
-			endpoint: '/register',
-			body: { username: data.email, password: data.password },
-		});
+		// let res = await customAxios.post({
+		// 	endpoint: '/register',
+		// 	body: { username: data.email, password: data.password },
+		// });
+		showToast({ msg: 'Registered Successfully', closeAfter: false });
+		// const timer = setTimeout(() => {
+		// 	navigate('/');
+		// 	// setTime((prevTime) => prevTime + 1);
+		// }, 1000);
+
+		const runFunctionAfterDelay = () => {
+			setTimeout(() => {
+				navigate('/');
+				console.log('Function executed after 3 seconds');
+			}, 2000);
+		};
+
+		// Call the function when the component renders
+		runFunctionAfterDelay();
 	};
 
 	return (
@@ -127,6 +159,20 @@ const Register = ({ customAxios }) => {
 					</p>
 				</div>
 			</Paper>
+			<ToastContainer
+				position="top-right"
+				autoClose={5000}
+				hideProgressBar={false}
+				newestOnTop={false}
+				closeOnClick
+				rtl={false}
+				pauseOnFocusLoss
+				draggable
+				pauseOnHover
+				theme="dark"
+				transition:Slide
+				closeButton={false}
+			/>
 		</Container>
 	);
 };

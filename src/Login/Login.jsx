@@ -2,9 +2,32 @@ import { Link } from 'react-router-dom';
 import { TextField, Button, Typography, Container, Paper, InputAdornment, IconButton } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { ToastContainer, toast } from 'react-toastify';
+
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
+	// const history = useHistory();
+
+	// const goToLink = (link) => {
+	// 	history.push(link);
+	// };
+
+	const showToast = ({ html, msg, closeAfter = 5000, position = 'top-right', canClose = true }) => {
+		return toast(html ? html : msg, {
+			position,
+			autoClose: closeAfter,
+			hideProgressBar: false,
+			closeOnClick: canClose,
+			pauseOnHover: true,
+			draggable: true,
+			progress: undefined,
+			theme: 'dark',
+		});
+	};
+
+	const navigate = useNavigate();
 	const {
 		handleSubmit,
 		control,
@@ -16,10 +39,7 @@ const Login = () => {
 	const handleTogglePasswordVisibility = () => {
 		setShowPassword(!showPassword);
 	};
-	const handleLogin = (data) => {
-		console.log('Login successful');
-		console.log('=== data ===', data);
-	};
+	const handleLogin = (data) => {};
 
 	return (
 		<Container maxWidth="xs">
@@ -86,18 +106,36 @@ const Login = () => {
 								/>
 							)}
 						/>
-						<Button fullWidth variant="contained" color="primary" type="submit">
+						<Button
+							fullWidth
+							variant="contained"
+							color="primary"
+							onClick={() => {
+								navigate('/Emonalyzer');
+							}}
+						>
 							Submit
 						</Button>
 					</form>
 					<p>
 						{`Don't have an account?`} <Link to="/register">Register</Link>
 					</p>
-					<p>
-						{`Don't have an account?`} <Link to="/emonalyzer">Go to app</Link>
-					</p>
 				</div>
 			</Paper>
+			<ToastContainer
+				position="top-right"
+				autoClose={5000}
+				hideProgressBar={false}
+				newestOnTop={false}
+				closeOnClick
+				rtl={false}
+				pauseOnFocusLoss
+				draggable
+				pauseOnHover
+				theme="dark"
+				transition:Slide
+				closeButton={false}
+			/>
 		</Container>
 	);
 };

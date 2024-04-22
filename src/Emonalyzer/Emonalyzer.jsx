@@ -81,11 +81,18 @@ const AudioAnalyzer = ({ customAxios }) => {
 		blobPropertyBag: { type: 'audio/wav' },
 	});
 
-	const showToast = ({ html, msg, closeAfter = 5000, position = 'top-right', canClose = true }) => {
+	const showToast = ({
+		html,
+		msg,
+		closeAfter = 5000,
+		position = 'top-right',
+		canClose = true,
+		hideProgressBar = false,
+	}) => {
 		return toast(html ? html : msg, {
 			position,
 			autoClose: closeAfter,
-			hideProgressBar: false,
+			hideProgressBar,
 			closeOnClick: canClose,
 			pauseOnHover: true,
 			draggable: true,
@@ -93,6 +100,10 @@ const AudioAnalyzer = ({ customAxios }) => {
 			theme: 'dark',
 		});
 	};
+
+	useEffect(() => {
+		showToast({ msg: 'Welcome joe404', hideProgressBar: true, closeAfter: 1000 });
+	}, []);
 
 	useEffect(() => {
 		console.log('======> hope 2');
@@ -183,6 +194,7 @@ const AudioAnalyzer = ({ customAxios }) => {
 					}`,
 					closeAfter: 3 * 1000,
 					position: 'top-center',
+					hideProgressBar: true,
 				});
 				setEmotionPredictions(predictions);
 				setCurrentAudioURL(currentUrl);
